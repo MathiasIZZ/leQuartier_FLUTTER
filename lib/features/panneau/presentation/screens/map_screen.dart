@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
+import '../../../../shared/widgets/app_loading_view.dart';
 import '../../domain/models/panneau.dart';
 import '../providers/panneaux_provider.dart';
 import '../providers/panneau_filter_provider.dart';
@@ -219,7 +220,7 @@ class MapScreen extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const AppLoadingView(),
               error: (err, stack) => Center(child: Text('Erreur de chargement de la carte : $err')),
             ),
           ),
