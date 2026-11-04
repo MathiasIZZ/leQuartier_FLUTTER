@@ -3,14 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:le_quartier/main.dart';
 
 void main() {
-  testWidgets('Le Quartier tabs smoke test', (WidgetTester tester) async {
+  testWidgets('Le Quartier auth gatekeeper smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pump();
 
-    // Verify that bottom navigation destinations exist
-    expect(find.text('Carte'), findsOneWidget);
-    expect(find.text('Explorer'), findsOneWidget);
-    expect(find.text('Profil'), findsOneWidget);
-    expect(find.text('Poser un panneau'), findsOneWidget);
+    // Verify that login screen is shown initially (unauthenticated)
+    expect(find.text('Connexion par téléphone'), findsOneWidget);
+    expect(find.text('Recevoir le code SMS'), findsOneWidget);
   });
 }

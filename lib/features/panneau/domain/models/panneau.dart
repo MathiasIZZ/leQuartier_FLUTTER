@@ -160,6 +160,12 @@ class Panneau {
   final String? organizationId;
   final int trustLevel;
   final DeviceLocation? deviceLocation;
+  final int score;
+  final List<String> upvoters;
+  final List<String> downvoters;
+  final String? createdByUserId;
+  final String? creatorPseudo;
+  final int? creatorAura;
 
   const Panneau({
     required this.id,
@@ -180,6 +186,12 @@ class Panneau {
     this.organizationId,
     this.trustLevel = 1,
     this.deviceLocation,
+    this.score = 0,
+    this.upvoters = const [],
+    this.downvoters = const [],
+    this.createdByUserId,
+    this.creatorPseudo,
+    this.creatorAura,
   });
 
   Panneau copyWith({
@@ -201,6 +213,12 @@ class Panneau {
     String? organizationId,
     int? trustLevel,
     DeviceLocation? deviceLocation,
+    int? score,
+    List<String>? upvoters,
+    List<String>? downvoters,
+    String? createdByUserId,
+    String? creatorPseudo,
+    int? creatorAura,
   }) {
     return Panneau(
       id: id ?? this.id,
@@ -221,6 +239,12 @@ class Panneau {
       organizationId: organizationId ?? this.organizationId,
       trustLevel: trustLevel ?? this.trustLevel,
       deviceLocation: deviceLocation ?? this.deviceLocation,
+      score: score ?? this.score,
+      upvoters: upvoters ?? this.upvoters,
+      downvoters: downvoters ?? this.downvoters,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
+      creatorPseudo: creatorPseudo ?? this.creatorPseudo,
+      creatorAura: creatorAura ?? this.creatorAura,
     );
   }
 
@@ -243,7 +267,43 @@ class Panneau {
         'organizationId': organizationId,
         'trustLevel': trustLevel,
         'deviceLocation': deviceLocation?.toJson(),
+        'score': score,
+        'upvoters': upvoters,
+        'downvoters': downvoters,
+        'createdByUserId': createdByUserId,
+        'creatorPseudo': creatorPseudo,
+        'creatorAura': creatorAura,
       };
+
+  factory Panneau.fromJson(Map<String, dynamic> json) => Panneau(
+        id: json['id'] ?? '',
+        title: json['title'] ?? '',
+        description: json['description'] ?? '',
+        category: PanneauCategoryExtension.fromJson(json['category'] ?? 'AUTRE'),
+        kind: PanneauKindExtension.fromJson(json['kind'] ?? 'EVENT'),
+        lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+        lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+        address: json['address'] ?? '',
+        locationHint: json['locationHint'] ?? '',
+        startsAt: json['startsAt'] != null ? DateTime.parse(json['startsAt']) : DateTime.now(),
+        endsAt: json['endsAt'] != null ? DateTime.parse(json['endsAt']) : DateTime.now(),
+        status: PanneauStatus.values.firstWhere(
+          (s) => s.name.toUpperCase() == (json['status'] ?? 'ACTIF'),
+          orElse: () => PanneauStatus.actif,
+        ),
+        creationMode: (json['creationMode'] ?? 'GPS') == 'GPS' ? CreationMode.gps : CreationMode.address,
+        photos: (json['photos'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        verifiedOnSite: json['verifiedOnSite'] ?? false,
+        organizationId: json['organizationId'],
+        trustLevel: json['trustLevel'] ?? 1,
+        deviceLocation: json['deviceLocation'] != null ? DeviceLocation.fromJson(json['deviceLocation']) : null,
+        score: json['score'] ?? 0,
+        upvoters: (json['upvoters'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        downvoters: (json['downvoters'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        createdByUserId: json['createdByUserId'],
+        creatorPseudo: json['creatorPseudo'],
+        creatorAura: json['creatorAura'],
+      );
 }
 
 class DuplicateCheckResult {

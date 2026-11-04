@@ -3,18 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
-import '../../../../shared/widgets/app_loading_view.dart';
 import '../../domain/models/panneau.dart';
+import '../../data/repositories/panneau_repository_impl.dart';
 import '../providers/panneaux_provider.dart';
 import '../providers/panneau_filter_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../shared/widgets/app_loading_view.dart';
 import 'create_panneau_wizard_screen.dart';
 
 class MapScreen extends ConsumerWidget {
   const MapScreen({super.key});
 
-  void _showPanneauBottomSheet(BuildContext context, Panneau panneau) {
+  void _showPanneauBottomSheet(BuildContext context, WidgetRef ref, Panneau panneau) {
     final dateFormat = DateFormat('dd/MM/yyyy à HH:mm', 'fr_FR');
     final theme = Theme.of(context);
+    final currentUserId = ref.read(authProvider).user?.id ?? '';
+
+    final hasUpvoted = panneau.upvoters.contains(currentUserId);
+    final hasDownvoted = panneau.downvoters.contains(currentUserId);
 
     showModalBottomSheet(
       context: context,
@@ -57,7 +63,7 @@ class MapScreen extends ConsumerWidget {
                   if (panneau.verifiedOnSite)
                     Chip(
                       avatar: const Icon(Icons.verified, size: 16, color: Colors.green),
-                      label: const Text('Vu sur place', style: TextStyle(fontSize: 11)),
+                      label: const Text('Certifié vu sur place', style: TextStyle(fontSize: 10)),
                       backgroundColor: Colors.green.shade50,
                       padding: EdgeInsets.zero,
                     ),
@@ -83,6 +89,19 @@ class MapScreen extends ConsumerWidget {
                   ],
                 ),
               ],
+              if (panneau.creatorPseudo != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Créé par @${panneau.creatorPseudo} (Aura : ⚡ ${panneau.creatorAura ?? 100})',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -91,7 +110,42 @@ class MapScreen extends ConsumerWidget {
                   Text('Du ${dateFormat.format(panneau.startsAt)} au ${dateFormat.format(panneau.endsAt)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ],
               ),
-              const SizedBox(height: 20),
+              const Divider(height: 24),
+              // Voting section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: hasUpvoted ? Colors.green.shade50 : null,
+                      side: BorderSide(color: hasUpvoted ? Colors.green : Colors.grey.shade300),
+                    ),
+                    onPressed: () async {
+                      await _vote(context, ref, panneau.id, true);
+                    },
+                    icon: Icon(Icons.thumb_up, color: hasUpvoted ? Colors.green : Colors.grey),
+                    label: Text('${panneau.upvoters.length}', style: TextStyle(color: hasUpvoted ? Colors.green : null)),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Score: ${panneau.score}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(width: 16),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: hasDownvoted ? Colors.red.shade50 : null,
+                      side: BorderSide(color: hasDownvoted ? Colors.red : Colors.grey.shade300),
+                    ),
+                    onPressed: () async {
+                      await _vote(context, ref, panneau.id, false);
+                    },
+                    icon: Icon(Icons.thumb_down, color: hasDownvoted ? Colors.red : Colors.grey),
+                    label: Text('${panneau.downvoters.length}', style: TextStyle(color: hasDownvoted ? Colors.red : null)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Fermer'),
@@ -101,6 +155,37 @@ class MapScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _vote(BuildContext context, WidgetRef ref, String panneauId, bool isUpvote) async {
+    final user = ref.read(authProvider).user;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez vous connecter pour voter.')),
+      );
+      return;
+    }
+
+    try {
+      await ref.read(panneauRepositoryProvider).votePanneau(
+            panneauId: panneauId,
+            isUpvote: isUpvote,
+            userId: user.id,
+          );
+      ref.invalidate(panneauxProvider);
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vote pris en compte !')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors du vote : $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -185,7 +270,7 @@ class MapScreen extends ConsumerWidget {
                           width: 40,
                           height: 40,
                           child: GestureDetector(
-                            onTap: () => _showPanneauBottomSheet(context, panneau),
+                            onTap: () => _showPanneauBottomSheet(context, ref, panneau),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: panneau.verifiedOnSite ? Colors.green : Colors.red,

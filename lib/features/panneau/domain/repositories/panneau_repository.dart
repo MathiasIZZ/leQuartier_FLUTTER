@@ -9,4 +9,10 @@ abstract class PanneauRepository {
     required String title,
   });
   Future<Panneau> createPanneau(PanneauCreationPayload payload);
+  Future<Panneau> votePanneau({
+    required String panneauId,
+    required bool isUpvote,
+    required String userId,
+  });
+  Future<List<Panneau>> getUserPanneaux(String userId);
 }
